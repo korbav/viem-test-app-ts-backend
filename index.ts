@@ -31,7 +31,7 @@ export const triggerDBinitialize = () => {
   });
 }
 
-app.listen(config.port, () => {
+app.listen(config.port, "0.0.0.0", () => {
   console.log(`Server listening on port ${config.port}`);
   triggerDBinitialize();
 })
