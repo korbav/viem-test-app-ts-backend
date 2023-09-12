@@ -232,19 +232,5 @@ export function startDataRefreshTimer() {
 }
 
 
-/*
-async function getApprovals(account ?: string, userAllowed ?: string): Promise<any[]> {
-    const actionsCollection = getActionsCollection();
-    const filter: Document = { eventName: 'Approval', address: contractAddress };
-    if (account) {
-      filter['args.owner'] = userAllowed;
-    }
-    if (userAllowed) {
-      filter['args.spender'] = userAllowed;
-    }
-    const approvalActions = await actionsCollection.find(filter).toArray();
-    return approvalActions;
-}*/
-
 
 
