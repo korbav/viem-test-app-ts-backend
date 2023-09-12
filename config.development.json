@@ -1,0 +1,7 @@
+{
+    "port": 1234,
+    "MongoDBURL": "mongodb://0.0.0.0:27017",
+    "MongoDBName": "busd-data",
+    "actionsFetcherThrottleTime": 5000,
+    "dataComputerThrottleTime": 10000
+}
