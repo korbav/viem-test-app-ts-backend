@@ -92,17 +92,24 @@ const actionsLoop = async (currentBlockNumber: bigint, oldestBlockNumber: bigint
         if(!isConnected) {
           break;
         }
-        const actions = await getTestClient().getLogs({
-            address: getContractAddress(),
-            events: parseAbi([ 
-                'event Approval(address indexed owner, address indexed spender, uint256 value)',
-                'event Transfer(address indexed from, address indexed to, uint256 value)',
-            ]),
-            fromBlock: BigInt(bigIntLib(currentBlockNumber as bigint).subtract(BLOCK_STEP).toString()),
-            toBlock: BigInt(currentBlockNumber.toString()),
-        })
-        currentBlockNumber = BigInt(bigIntLib(currentBlockNumber as bigint).subtract(BLOCK_STEP).toString());
-        await storeActionsToDatabase(actions as unknown as Action[]);
+        try {
+          const actions = await getTestClient().getLogs({
+              address: getContractAddress(),
+              events: parseAbi([ 
+                  'event Approval(address indexed owner, address indexed spender, uint256 value)',
+                  'event Transfer(address indexed from, address indexed to, uint256 value)',
+              ]),
+              fromBlock: BigInt(bigIntLib(currentBlockNumber as bigint).subtract(BLOCK_STEP).toString()),
+              toBlock: BigInt(currentBlockNumber.toString()),
+          })
+          currentBlockNumber = BigInt(bigIntLib(currentBlockNumber as bigint).subtract(BLOCK_STEP).toString());
+          await storeActionsToDatabase(actions as unknown as Action[]);
+        } catch(e) {
+          console.log(e)
+        } finally {
+          // to avoid RPC denying requests
+          await new Promise((resolve) => setTimeout(() => resolve(null), 5000))
+        }
     }
 }
 

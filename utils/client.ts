@@ -1,11 +1,10 @@
-import {  walletActions, publicActions, http  } from "viem";
+import {  walletActions, publicActions, http, createTestClient  } from "viem";
 import { polygonMumbai } from "viem/chains";
-import { createTestClient } from "viem";
 
 export function getTestClient() {
     return createTestClient({
         chain: polygonMumbai,
-        transport: http("https://rpc-mumbai.maticvigil.com/"),
+        transport: http("https://polygon-mumbai.infura.io/v3/4458cf4d1689497b9a38b1d6bbf05e78"),
         mode: "ganache"
     })
     .extend(walletActions)

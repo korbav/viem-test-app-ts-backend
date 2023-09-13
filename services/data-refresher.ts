@@ -136,11 +136,19 @@ async function computeDailyBUSDVolumes(): Promise<void> {
     }
     const transfers: any[] = await getTransfersCollection().find().toArray();
     const volumes: Record<number, bigint> = {};
+    const blockCache : Record<string, number> = {};
     for(let transfer of transfers) {
-        const block: VBlock = await getTestClient().getBlock({ blockNumber: transfer.blockNumber });
-        const d = new Date(Number(block.timestamp) * 1000);
-        d.setHours(0,0,0,0);
-        const timestamp = d.getTime()
+        let timestamp;
+        if(blockCache.hasOwnProperty(transfer.blockNumber.toString())) {
+            timestamp = blockCache[transfer.blockNumber.toString()]
+        } else {
+            const block: VBlock =  await getTestClient().getBlock({ blockNumber: transfer.blockNumber });
+            const d = new Date(Number(block.timestamp) * 1000);
+            d.setHours(0,0,0,0);
+            timestamp = d.getTime()
+            blockCache[transfer.blockNumber.toString()] = timestamp;
+        }
+        
         if(!volumes.hasOwnProperty(timestamp)) {
             volumes[timestamp] = 0n;
         }
