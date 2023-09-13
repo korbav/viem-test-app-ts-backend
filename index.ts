@@ -1,4 +1,4 @@
-import fs from 'fs'
+
 import express from 'express'
 import getConfig from "./utils/config";
 import cors from "cors";
@@ -32,12 +32,7 @@ export const triggerDBinitialize = () => {
   });
 }
 
-https
-  .createServer({
-    key: fs.readFileSync("/home/ubuntu/key.pem"),
-    cert: fs.readFileSync("/home/ubuntu/cert.pem"),
-  }, app)
-  .listen(config.port, "0.0.0.0", () => {
-    console.log(`Server listening on port ${config.port}`);
-    triggerDBinitialize();
+app.listen(config.port, "0.0.0.0", () => {
+  console.log(`Server listening on port ${config.port}`);
+  triggerDBinitialize();
 })
