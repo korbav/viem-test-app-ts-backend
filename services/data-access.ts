@@ -30,9 +30,13 @@ export async function getUsersOperations(user ?: string): Promise<Action[]> {
         }).limit(10).toArray() as unknown as Action[];
 }
 
-export async function getBalances(): Promise<Balance[]> {
+export async function getBalances(owner ?: string): Promise<Balance[]|string> {
+    if(owner) {
+        return (await getBalancesCollection().find({ owner }, { collation }).toArray())[0].value as unknown as string;
+    }
     return await getBalancesCollection().find().toArray() as unknown as Balance[];
 }
+
 export async function getDailyVolumes(): Promise<Volume[]> {
     return await getDailyBusdVolumesCollection().find().sort({ timestamp: 1 }).toArray() as unknown as Volume[];
 }

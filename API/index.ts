@@ -30,9 +30,15 @@ export const initializeAPI = (app: Express) => {
         }
     });
 
-    app.get("/balances", (_req: Request, res: Response) => {
-        getBalances().then(d => res.send(d));
+
+    app.get("/balances/:user?", (req: Request, res: Response) => {
+        if(req.params.user) { // Specific user operations
+            getBalances(req.params.user).then(d => res.send(d));
+        } else { // All users operations
+            getBalances().then(d => res.send(d));
+        }
     });
+
 
 
     app.get("/dailyvolumes", (_req: Request, res: Response) => {
