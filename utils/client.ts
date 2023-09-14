@@ -4,7 +4,7 @@ import { polygonMumbai } from "viem/chains";
 export function getTestClient() {
     return createTestClient({
         chain: polygonMumbai,
-        transport: http("https://polygon-mumbai.infura.io/v3/4458cf4d1689497b9a38b1d6bbf05e78"),
+        transport: http("https://polygon-mumbai.infura.io/v3/27051503de824552a932ba71cc0b5583"),
         mode: "ganache"
     })
     .extend(walletActions)
