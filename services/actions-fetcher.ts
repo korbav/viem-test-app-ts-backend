@@ -116,7 +116,7 @@ const actionsLoop = async (currentBlockNumber: bigint, oldestBlockNumber: bigint
 export async function fetchHistoryActions(): Promise<void> {
     try {
       const firstContractBlock = 22069112n;
-      const oldestBlockInDB = await getOldestBlockInDatabase();
+      const oldestBlockInDB = await getOldestBlockInDatabase() || await getTestClient().getBlockNumber();
       
       return await actionsLoop(oldestBlockInDB as bigint, firstContractBlock);
     } catch(e) {
