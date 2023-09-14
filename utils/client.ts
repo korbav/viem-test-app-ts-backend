@@ -2,11 +2,15 @@ import {  walletActions, publicActions, http, createTestClient  } from "viem";
 import { polygonMumbai } from "viem/chains";
 
 export function getTestClient() {
-    return createTestClient({
+    const x = createTestClient({
         chain: polygonMumbai,
-        transport: http("https://polygon-mumbai.infura.io/v3/27051503de824552a932ba71cc0b5583"),
-        mode: "ganache"
+        transport: http("https://polygon-mumbai.infura.io/v3/4458cf4d1689497b9a38b1d6bbf05e78"),
+        mode: "ganache",
+        cacheTime: 20_000
+
     })
     .extend(walletActions)
-    .extend(publicActions);
+    .extend(publicActions)
+
+    return x;
 }

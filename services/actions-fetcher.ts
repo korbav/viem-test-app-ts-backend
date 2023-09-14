@@ -113,10 +113,14 @@ const actionsLoop = async (currentBlockNumber: bigint, oldestBlockNumber: bigint
     }
 }
 
-export async function fetchHistoryActions(): Promise<void> {  
-    let oldestBlockNumber =  await getOldestBlockInDatabase() || 22069112n;
-    let currentBlockNumber = await getNewestBlockInDatabase() || await getTestClient().getBlockNumber();
-    return await actionsLoop(currentBlockNumber, oldestBlockNumber);
+export async function fetchHistoryActions(): Promise<void> {
+    try {
+      let oldestBlockNumber =  await getOldestBlockInDatabase() || 22069112n;
+      let currentBlockNumber = await getNewestBlockInDatabase() || await getTestClient().getBlockNumber();
+      return await actionsLoop(currentBlockNumber, oldestBlockNumber);
+    } catch(e) {
+      console.log(e)
+    }
 }
 
 export let actionsFetchTimerIntervalRef: NodeJS.Timeout;
@@ -127,13 +131,18 @@ export function startLatestActionsFetchTimer() {
           clearInterval(actionsFetchTimerIntervalRef)
           return;
         }
-        const toBlock = await getTestClient().getBlockNumber();;
-        if(toBlock !== null) {
-            return new Promise(async () => {
-                let oldestBlockNumber =  (await getNewestBlockInDatabase() || await getTestClient().getBlockNumber());
-                let currentBlockNumber = (await getTestClient().getBlockNumber());
-                await actionsLoop(currentBlockNumber, oldestBlockNumber);
-            });
+        try {
+          const toBlock = await getTestClient().getBlockNumber();;
+          if(toBlock !== null) {
+              return new Promise(async () => {
+                  let oldestBlockNumber =  (await getNewestBlockInDatabase() || await getTestClient().getBlockNumber());
+                  let currentBlockNumber = (await getTestClient().getBlockNumber());
+                  await actionsLoop(currentBlockNumber, oldestBlockNumber);
+              });
+          }
+        } catch(e) {
+          console.log(e)
         }
+        
     }, getConfig().actionsFetcherThrottleTime)
 }
