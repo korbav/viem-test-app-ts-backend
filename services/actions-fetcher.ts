@@ -65,7 +65,7 @@ async function storeActionsToDatabase(newActions: Action[]): Promise<void> {
     const actionsCollection = getActionsCollection();
     const retainedActions  = [];
     for(let action of newActions) {
-      if(!await actionsCollection.findOne({ _id: action.transactionHash } as any, { collation: { locale: "en", strength: 2 }})) {
+      if(!await actionsCollection.findOne({ transactionHash: action.transactionHash } as any, { collation: { locale: "en", strength: 2 }})) {
         retainedActions.push({ ...action, _id: action.transactionHash, args: { ...action.args, value: `${action.args.value.toString()}` } } as any)
       }
     }

@@ -7,11 +7,23 @@ type Allowance = { owner: string, spenders: Array<{ spender: string, value: stri
 type Balance = { owner: string, value: string };
 type Volume = { timestamp: number, value: string };
 
+let isConnected = true;
+
+export function notifyDataAccessor(connected: boolean) {
+  isConnected = connected;
+}
+
 export async function getOwnerAllowances(owner: string): Promise<Allowance[]> {
+    if(!isConnected) {
+        return [];
+    }
     return await getAllowancesCollection().find({ owner }, { collation }).toArray() as unknown as Allowance[];
 }
 
 export async function getUsersOperations(user ?: string): Promise<Action[]> {
+    if(!isConnected) {
+        return [];
+    }
     let filter = {};
     if(user) {
         filter = {
@@ -31,12 +43,19 @@ export async function getUsersOperations(user ?: string): Promise<Action[]> {
 }
 
 export async function getBalances(owner ?: string): Promise<Balance[]|string> {
-    if(owner) {
-        return (await getBalancesCollection().find({ owner }, { collation }).toArray())[0].value as unknown as string;
+    if(!isConnected) {
+        return [];
+    }
+    else if(owner) {
+        const balance = (await getBalancesCollection().find({ owner }, { collation }).toArray())[0];
+        return balance ? (await getBalancesCollection().find({ owner }, { collation }).toArray())[0].value as unknown as string : "0";
     }
     return await getBalancesCollection().find().toArray() as unknown as Balance[];
 }
 
 export async function getDailyVolumes(): Promise<Volume[]> {
+    if(!isConnected) {
+        return [];
+    }
     return await getDailyBusdVolumesCollection().find().sort({ timestamp: 1 }).toArray() as unknown as Volume[];
 }
