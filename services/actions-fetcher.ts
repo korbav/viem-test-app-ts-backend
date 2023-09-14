@@ -65,7 +65,7 @@ async function storeActionsToDatabase(newActions: Action[]): Promise<void> {
     const actionsCollection = getActionsCollection();
     const retainedActions  = [];
     for(let action of newActions) {
-      if(!await actionsCollection.findOne({ transactionHash: action.transactionHash } as any, { collation: { locale: "en", strength: 2 }})) {
+      if(!await actionsCollection.findOne({ transactionHash: action.transactionHash }, { collation: { locale: "en", strength: 2 }})) {
         retainedActions.push({ ...action, _id: action.transactionHash, args: { ...action.args, value: `${action.args.value.toString()}` } } as any)
       }
     }
@@ -115,9 +115,10 @@ const actionsLoop = async (currentBlockNumber: bigint, oldestBlockNumber: bigint
 
 export async function fetchHistoryActions(): Promise<void> {
     try {
-      let oldestBlockNumber =  await getOldestBlockInDatabase() || 22069112n;
-      let currentBlockNumber = await getNewestBlockInDatabase() || await getTestClient().getBlockNumber();
-      return await actionsLoop(currentBlockNumber, oldestBlockNumber);
+      const firstContractBlock = 22069112n;
+      const oldestBlockInDB = await getOldestBlockInDatabase();
+      
+      return await actionsLoop(oldestBlockInDB as bigint, firstContractBlock);
     } catch(e) {
       console.log(e)
     }
