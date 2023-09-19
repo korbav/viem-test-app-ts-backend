@@ -143,7 +143,7 @@ async function computeDailyBUSDVolumes(): Promise<void> {
     }).read.totalSupply() as BigInt;
 
     const transfers: any[] = (await getTransfersCollection().find().toArray()).filter(t => {
-        return bigIntLib(t.args.value).lt(bigIntLib(totalSupply.toString()).divide(10));
+        return bigIntLib(t.args.value).lt(bigIntLib(totalSupply.toString()).divide(100000));
     });
     const volumes: Record<number, bigint> = {};
     const blockCache: Record<string, number> = {};
