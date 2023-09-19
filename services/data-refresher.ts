@@ -1,6 +1,6 @@
 import { getActionsCollection, getAllowancesCollection, getApprovalsCollection, getBalancesCollection, getDailyBusdVolumesCollection, getTransfersCollection } from "../utils/database";
 import BUSD from "../assets/BUSD.json";
-import { Address, Block as VBlock } from "viem";
+import { Abi, Address, Block as VBlock, getContract } from "viem";
 import { Document } from "mongodb";
 import { getTestClient } from "../utils/client";
 import getConfig from "../utils/config";
@@ -134,9 +134,20 @@ async function computeDailyBUSDVolumes(): Promise<void> {
     if (!isConnected) {
         return;
     }
-    const transfers: any[] = await getTransfersCollection().find().toArray();
+
+    const totalSupply: BigInt = await getContract({
+        address: BUSD.networks["80001"].address as Address,
+        abi: BUSD.abi as Abi,
+        publicClient: getTestClient()
+    }).read.totalSupply() as BigInt;
+
+    const transfers: any[] = (await getTransfersCollection().find().toArray()).filter(t => {
+        return t.args.value > totalSupply;
+    });
     const volumes: Record<number, bigint> = {};
     const blockCache: Record<string, number> = {};
+
+
     for (let transfer of transfers) {
         try {
             let timestamp;
@@ -184,6 +195,7 @@ async function computeDailyBUSDVolumes(): Promise<void> {
 
 
 async function computeAllUsersBalances(): Promise<void> {
+    
     if (!isConnected) {
         return;
     }
