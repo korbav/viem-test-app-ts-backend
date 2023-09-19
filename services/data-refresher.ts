@@ -5,6 +5,7 @@ import { Document } from "mongodb";
 import { getTestClient } from "../utils/client";
 import getConfig from "../utils/config";
 import { unset } from "lodash";
+import bigIntLib from "big-integer";
 
 const contractAddress = (BUSD.networks["80001"].address as Address).toLowerCase();
 const collation = { locale: 'en', strength: 2 };
@@ -142,7 +143,7 @@ async function computeDailyBUSDVolumes(): Promise<void> {
     }).read.totalSupply() as BigInt;
 
     const transfers: any[] = (await getTransfersCollection().find().toArray()).filter(t => {
-        return t.args.value < totalSupply;
+        return bigIntLib(t.args.value).lt(totalSupply.toString());
     });
     const volumes: Record<number, bigint> = {};
     const blockCache: Record<string, number> = {};
