@@ -142,7 +142,7 @@ async function computeDailyBUSDVolumes(): Promise<void> {
     }).read.totalSupply() as BigInt;
 
     const transfers: any[] = (await getTransfersCollection().find().toArray()).filter(t => {
-        return t.args.value > totalSupply;
+        return t.args.value < totalSupply;
     });
     const volumes: Record<number, bigint> = {};
     const blockCache: Record<string, number> = {};
