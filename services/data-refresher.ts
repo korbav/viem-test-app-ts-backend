@@ -196,7 +196,6 @@ async function computeDailyBUSDVolumes(): Promise<void> {
 
 
 async function computeAllUsersBalances(): Promise<void> {
-    
     if (!isConnected) {
         return;
     }

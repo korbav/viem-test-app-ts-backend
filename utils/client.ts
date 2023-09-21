@@ -5,10 +5,12 @@ import BUSD from "../assets/BUSD.json";
 export function getTestClient() {
     return createTestClient({
         chain: polygonMumbai,
-        transport: http("https://polygon-mumbai.infura.io/v3/4458cf4d1689497b9a38b1d6bbf05e78"),
+        transport: http("https://polygon-mumbai.infura.io/v3/4458cf4d1689497b9a38b1d6bbf05e78", {
+            retryDelay: 500,
+            retryCount: 1
+        }),
         mode: "ganache",
-        cacheTime: 20_000
-
+        cacheTime: 20_000,
     })
     .extend(walletActions)
     .extend(publicActions);
