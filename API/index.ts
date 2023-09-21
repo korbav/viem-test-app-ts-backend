@@ -3,7 +3,7 @@ import { triggerDBinitialize } from "..";
 import { actionsFetchTimerIntervalRef } from "../services/actions-fetcher";
 import { dataRefreshTimerIntervalRef } from "../services/data-refresher";
 import { resetDatabase } from "../utils/database";
-import { getBalances, getDailyVolumes, getOwnerAllowances, getUsersOperations } from "../services/data-access";
+import { getBalances, getDailyVolumes, getOwnerAllowances, getUsersOperations, getTotalSupply } from "../services/data-access";
 
 
 async function resetDB() {
@@ -43,6 +43,10 @@ export const initializeAPI = (app: Express) => {
 
     app.get("/dailyvolumes", (_req: Request, res: Response) => {
         getDailyVolumes().then(d => res.send(d));
+    });
+
+    app.get("/totalsupply", (_req: Request, res: Response) => {
+        getTotalSupply().then(d => res.send(d));
     });
 }
 

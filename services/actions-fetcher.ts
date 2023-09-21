@@ -60,7 +60,7 @@ async function getNewestBlockInDatabase(): Promise<bigint|null> {
     return BigInt(newestAction[0].blockNumber);
 }
 
-async function storeActionsToDatabase(newActions: Action[]): Promise<void> {
+export async function storeActionsToDatabase(newActions: Action[]): Promise<void> {
   try {
     const actionsCollection = getActionsCollection();
     const retainedActions  = [];

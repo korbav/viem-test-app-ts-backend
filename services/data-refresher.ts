@@ -6,6 +6,9 @@ import { getTestClient } from "../utils/client";
 import getConfig from "../utils/config";
 import { unset } from "lodash";
 import bigIntLib from "big-integer";
+import { storeActionsToDatabase } from "./actions-fetcher";
+import { Action } from "../model/Action";
+import "../utils/common";
 
 const contractAddress = (BUSD.networks["80001"].address as Address).toLowerCase();
 const collation = { locale: 'en', strength: 2 };
@@ -229,16 +232,22 @@ async function computeAllUsersBalances(): Promise<void> {
     }
 }
 
+async function triggerComputation(includeApprovalsAndAllowances = true) {
+    await computeAllUsersBalances();
+    await computeAllUsersTransfers();
+    if(includeApprovalsAndAllowances) {
+        await computeAllUsersApprovals();
+        await computeAllUsersAllowances();
+    }
+    await computeDailyBUSDVolumes();
+}
+
 export async function dataRefreshTimer() {
     if (!isConnected) {
         return;
     }
     try {
-        await computeAllUsersBalances();
-        await computeAllUsersTransfers();
-        await computeAllUsersApprovals();
-        await computeAllUsersAllowances();
-        await computeDailyBUSDVolumes();
+        await triggerComputation();
     } catch (e) {
         console.log(e);
     }
@@ -258,6 +267,44 @@ export function startDataRefreshTimer() {
     });
 }
 
+let notifyUsers = (msg: any) => {};
+export function initializeWebSocketHandler(sendToUser: (msg: any) => void) {
+    notifyUsers = sendToUser;
+}
 
+let isRefreshingDatabase = false;
+let shouldRefreshAgain = true;
+export async function handleLiveRefresh(event: any) {
+    if (!isConnected) {
+        return;
+    }
+    //console.log("____________________________________________ Handling a live event! ____________________________________________");
+    //console.log("Notifying users.");
+    notifyUsers(JSON.stringify({
+        type: "database_refreshed",
+        action: event
+    }));
 
+    if(isRefreshingDatabase) {
+        //console.log("Already refreshing, skipping");
+        shouldRefreshAgain = true;
+        return;
+    }
+    isRefreshingDatabase = true;
+    //console.log("Storing...");
+    await storeActionsToDatabase([event] as Action[]);
+    //console.log("Stored.");
+    //console.log("Refreshing database...");
+    await triggerComputation(event.eventName === "Approval");
+    //console.log("Database refreshed.");
+    isRefreshingDatabase = false;
+    if(shouldRefreshAgain) {
+        //console.log("Will refresh again now");
+        shouldRefreshAgain = false;
+        isRefreshingDatabase = true;
+        await triggerComputation();
+        //console.log("Refreshed again");
+        isRefreshingDatabase = false;
+    }
+}
 

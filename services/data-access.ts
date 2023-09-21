@@ -1,4 +1,5 @@
 import { Action } from "../model/Action";
+import { getContractObject, getTestClient } from "../utils/client";
 import { getActionsCollection, getAllowancesCollection, getBalancesCollection, getDailyBusdVolumesCollection } from "../utils/database";
 
 const collation = { locale : "en", strength: 2}
@@ -58,4 +59,8 @@ export async function getDailyVolumes(): Promise<Volume[]> {
         return [];
     }
     return await getDailyBusdVolumesCollection().find().sort({ timestamp: 1 }).toArray() as unknown as Volume[];
+}
+export async function getTotalSupply(): Promise<string> {
+    const value: BigInt = await getContractObject().read.totalSupply() as BigInt;
+    return value.toString();
 }
