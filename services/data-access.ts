@@ -6,7 +6,12 @@ const collation = { locale : "en", strength: 2}
 
 type Allowance = { owner: string, spenders: Array<{ spender: string, value: string }>};
 type Balance = { owner: string, value: string };
-type Volume = { timestamp: number, value: string };
+type Volume = {
+    basedOnLastTransactionIndex: any;
+    basedOnBlock: any; 
+    timestamp: number;
+    value: string;
+};
 
 let isConnected = true;
 

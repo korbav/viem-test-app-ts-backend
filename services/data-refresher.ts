@@ -10,6 +10,7 @@ import bigIntLib from "big-integer";
 import { storeActionsToDatabase } from "./actions-fetcher";
 import { Action } from "../model/Action";
 import "../utils/common";
+import { getDailyVolumes } from "./data-access";
 
 const contractAddress = (BUSD.networks["80001"].address as Address).toLowerCase();
 const collation = { locale: 'en', strength: 2 };
@@ -135,9 +136,21 @@ async function computeAllUsersApprovals(): Promise<void> {
     }
 }
 
+let transfersCache: any[];
 async function computeDailyBUSDVolumes(): Promise<void> {
     if (!isConnected) {
         return;
+    }
+
+    let currentVolumes = await getDailyVolumes();
+    const currentVolumesLastBlockNumber = currentVolumes.length > 0 ? currentVolumes[currentVolumes.length - 1].basedOnBlock : null;
+    const currentVolumesLastransactionIndex = currentVolumes.length > 0 ? currentVolumes[currentVolumes.length - 1].basedOnLastTransactionIndex : null;
+    let volumesFetchedFromDB: Record<number, bigint> = {};
+    if(currentVolumes.length > 0) {
+        volumesFetchedFromDB = {};
+        for(let volume of currentVolumes) {
+            volumesFetchedFromDB[volume.timestamp] = BigInt(volume.value);
+        }
     }
 
     const totalSupply: BigInt = await getContract({
@@ -147,13 +160,32 @@ async function computeDailyBUSDVolumes(): Promise<void> {
     }).read.totalSupply() as BigInt;
 
     const transfers: any[] = (await getTransfersCollection().find().toArray());
-    const volumes: Record<number, bigint> = {};
+    if(!transfersCache) {
+        transfersCache = transfers;
+    }
+
+
+    const volumes: Record<number, bigint> = volumesFetchedFromDB || {};
     const blockCache: Record<string, number> = {};
 
+    let basedOnBlock = -1;
+    let basedOnLastTransactionIndex = -1;
 
-    for (let transfer of transfers) {
+    const filteredTransfers = transfers.filter(t => currentVolumesLastBlockNumber !== null ? 
+        t.blockNumber > currentVolumesLastBlockNumber || (t.blockNumber === currentVolumesLastBlockNumber && t.transactionIndex > currentVolumesLastransactionIndex)
+    : true);
+
+    for (let transfer of filteredTransfers) {
         try {
             let timestamp;
+            
+            if(transfer.blockNumber > basedOnBlock || (transfer.blockNumber === basedOnBlock && transfer.transactionIndex > basedOnLastTransactionIndex)) {
+                basedOnLastTransactionIndex = transfer.transactionIndex;
+            }
+
+            if(transfer.blockNumber > basedOnBlock) {
+                basedOnBlock = transfer.blockNumber;
+            }
             if (blockCache.hasOwnProperty(transfer.blockNumber.toString())) {
                 timestamp = blockCache[transfer.blockNumber.toString()]
             } else {
@@ -172,8 +204,14 @@ async function computeDailyBUSDVolumes(): Promise<void> {
         }
     }
 
+    if(!filteredTransfers.length) {
+        return;
+    }
+
     const formattedData = Object.keys(volumes).map((timestamp: any) => ({
         timestamp: Number(timestamp),
+        basedOnBlock,
+        basedOnLastTransactionIndex,
         value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(1000))).toString()
     }));
 
@@ -301,9 +339,9 @@ export async function handleLiveRefresh(event: any) {
     //console.log("Storing...");
     await storeActionsToDatabase([event] as Action[]);
     //console.log("Stored.");
-    //console.log("Refreshing database...");
+    console.log("Refreshing database...");
     await triggerComputation(event.eventName === "Approval");
-    //console.log("Database refreshed.");
+    console.log("Database refreshed.");
     isRefreshingDatabase = false;
     if(shouldRefreshAgain) {
         //console.log("Will refresh again now");
