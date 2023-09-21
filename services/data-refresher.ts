@@ -253,14 +253,19 @@ export async function dataRefreshTimer() {
 
 export let dataRefreshTimerIntervalRef: NodeJS.Timeout;
 
+let isRefreshingDBFromTimer = false;
 export function startDataRefreshTimer() {
+    isRefreshingDBFromTimer = true;
     dataRefreshTimer().then(() => {
+        isRefreshingDBFromTimer = false;
         dataRefreshTimerIntervalRef = setInterval(async () => {
             if (!isConnected) {
                 clearInterval(dataRefreshTimerIntervalRef)
                 return;
             }
+            isRefreshingDBFromTimer = true;
             await dataRefreshTimer();
+            isRefreshingDBFromTimer = false;
         }, getConfig().dataComputerThrottleTime)
     });
 }
@@ -282,6 +287,10 @@ export async function handleLiveRefresh(event: any) {
         type: "database_refreshed",
         action: event
     }));
+
+    if(isRefreshingDBFromTimer) {
+        return;
+    }
 
     if(isRefreshingDatabase) {
         //console.log("Already refreshing, skipping");

@@ -6,8 +6,8 @@ export function getTestClient() {
     return createTestClient({
         chain: polygonMumbai,
         transport: http("https://polygon-mumbai.infura.io/v3/4458cf4d1689497b9a38b1d6bbf05e78", {
-            retryDelay: 500,
-            retryCount: 1
+            retryDelay: 500, // 150 by default
+            retryCount: 1 // 3 by default
         }),
         mode: "ganache",
         cacheTime: 20_000,
