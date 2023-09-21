@@ -175,7 +175,7 @@ async function computeDailyBUSDVolumes(): Promise<void> {
 
     const formattedData = Object.keys(volumes).map((timestamp: any) => ({
         timestamp: Number(timestamp),
-        value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(1000000))).toString()
+        value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(100000))).toString()
     }));
 
     // save to DB
