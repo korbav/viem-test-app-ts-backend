@@ -2,6 +2,7 @@ import { getActionsCollection, getAllowancesCollection, getApprovalsCollection, 
 import BUSD from "../assets/BUSD.json";
 import { Abi, Address, Block as VBlock, getContract } from "viem";
 import { Document } from "mongodb";
+import moment from "moment";
 import { getTestClient } from "../utils/client";
 import getConfig from "../utils/config";
 import { unset } from "lodash";
@@ -157,17 +158,15 @@ async function computeDailyBUSDVolumes(): Promise<void> {
                 timestamp = blockCache[transfer.blockNumber.toString()]
             } else {
                 const block: VBlock = await getTestClient().getBlock({ blockNumber: transfer.blockNumber });
-                const d = new Date(Number(block.timestamp) * 1000);
-                d.setHours(0, 0, 0, 0);
-                timestamp = d.getTime()
+                timestamp = moment.unix(Number(block.timestamp)).utc().startOf('day').unix() * 1000;
                 blockCache[transfer.blockNumber.toString()] = timestamp;
             }
 
-            if (!volumes.hasOwnProperty(timestamp)) {
-                volumes[timestamp] = 0n;
+            if (!volumes.hasOwnProperty(timestamp!)) {
+                volumes[timestamp!] = 0n;
             }
 
-            volumes[timestamp] += BigInt(transfer.args.value);
+            volumes[timestamp!] += BigInt(transfer.args.value);
         } catch (e) {
             console.log(e)
         }
@@ -175,7 +174,7 @@ async function computeDailyBUSDVolumes(): Promise<void> {
 
     const formattedData = Object.keys(volumes).map((timestamp: any) => ({
         timestamp: Number(timestamp),
-        value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(100000))).toString()
+        value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(1000))).toString()
     }));
 
     // save to DB
