@@ -138,144 +138,158 @@ async function computeAllUsersApprovals(): Promise<void> {
 
 let transfersCache: any[];
 async function computeDailyBUSDVolumes(): Promise<void> {
-    if (!isConnected) {
-        return;
-    }
-
-    let currentVolumes = await getDailyVolumes();
-    const currentVolumesLastBlockNumber = currentVolumes.length > 0 ? currentVolumes[currentVolumes.length - 1].basedOnBlock : null;
-    const currentVolumesLastransactionIndex = currentVolumes.length > 0 ? currentVolumes[currentVolumes.length - 1].basedOnLastTransactionIndex : null;
-    let volumesFetchedFromDB: Record<number, bigint> = {};
-    if(currentVolumes.length > 0) {
-        volumesFetchedFromDB = {};
-        for(let volume of currentVolumes) {
-            volumesFetchedFromDB[volume.timestamp] = BigInt(volume.value);
+    try {
+        if (!isConnected) {
+            return;
         }
-    }
-
-    const totalSupply: BigInt = await getContract({
-        address: BUSD.networks["80001"].address as Address,
-        abi: BUSD.abi as Abi,
-        publicClient: getTestClient()
-    }).read.totalSupply() as BigInt;
-
-    const transfers: any[] = (await getTransfersCollection().find().toArray());
-    if(!transfersCache) {
-        transfersCache = transfers;
-    }
-
-
-    const volumes: Record<number, bigint> = volumesFetchedFromDB || {};
-    const blockCache: Record<string, number> = {};
-
-    let basedOnBlock = -1;
-    let basedOnLastTransactionIndex = -1;
-
-    const filteredTransfers = transfers.filter(t => currentVolumesLastBlockNumber !== null ? 
-        t.blockNumber > currentVolumesLastBlockNumber || (t.blockNumber === currentVolumesLastBlockNumber && t.transactionIndex > currentVolumesLastransactionIndex)
-    : true);
-
-    for (let transfer of filteredTransfers) {
-        try {
-            let timestamp;
-            
-            if(transfer.blockNumber > basedOnBlock || (transfer.blockNumber === basedOnBlock && transfer.transactionIndex > basedOnLastTransactionIndex)) {
-                basedOnLastTransactionIndex = transfer.transactionIndex;
+    
+        let currentVolumes = await getDailyVolumes();
+        const currentVolumesLastBlockNumber = currentVolumes.length > 0 ? currentVolumes[currentVolumes.length - 1].basedOnBlock : null;
+        const currentVolumesLastransactionIndex = currentVolumes.length > 0 ? currentVolumes[currentVolumes.length - 1].basedOnLastTransactionIndex : null;
+        let volumesFetchedFromDB: Record<number, bigint> = {};
+        if(currentVolumes.length > 0) {
+            volumesFetchedFromDB = {};
+            for(let volume of currentVolumes) {
+                volumesFetchedFromDB[volume.timestamp] = BigInt(volume.value);
             }
-
-            if(transfer.blockNumber > basedOnBlock) {
-                basedOnBlock = transfer.blockNumber;
-            }
-            if (blockCache.hasOwnProperty(transfer.blockNumber.toString())) {
-                timestamp = blockCache[transfer.blockNumber.toString()]
-            } else {
-                const block: VBlock = await getTestClient().getBlock({ blockNumber: transfer.blockNumber });
-                timestamp = moment.unix(Number(block.timestamp)).utc().startOf('day').unix() * 1000;
-                blockCache[transfer.blockNumber.toString()] = timestamp;
-            }
-
-            if (!volumes.hasOwnProperty(timestamp!)) {
-                volumes[timestamp!] = 0n;
-            }
-
-            volumes[timestamp!] += BigInt(transfer.args.value);
-        } catch (e) {
-            console.log(e)
         }
-    }
-
-    if(!filteredTransfers.length) {
-        return;
-    }
-
-    const formattedData = Object.keys(volumes).map((timestamp: any) => ({
-        timestamp: Number(timestamp),
-        basedOnBlock,
-        basedOnLastTransactionIndex,
-        value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(1000))).toString()
-    }));
-
-    // save to DB
-    if (formattedData.length > 0) {
-        const bulkOperations = formattedData.map((volume) => ({
-            updateOne: {
-                filter: { timestamp: volume.timestamp },
-                update: { $set: volume },
-                upsert: true,
-            },
+    
+        const totalSupply: BigInt = await getContract({
+            address: BUSD.networks["80001"].address as Address,
+            abi: BUSD.abi as Abi,
+            publicClient: getTestClient()
+        }).read.totalSupply() as BigInt;
+    
+        const transfers: any[] = (await getTransfersCollection().find().toArray());
+        if(!transfersCache) {
+            transfersCache = transfers;
+        }
+    
+    
+        const volumes: Record<number, bigint> = volumesFetchedFromDB || {};
+        const blockCache: Record<string, number> = {};
+    
+        let basedOnBlock = -1;
+        let basedOnLastTransactionIndex = -1;
+    
+        const filteredTransfers = transfers.filter(t => currentVolumesLastBlockNumber !== null ? 
+            t.blockNumber > currentVolumesLastBlockNumber || (t.blockNumber === currentVolumesLastBlockNumber && t.transactionIndex > currentVolumesLastransactionIndex)
+        : true);
+    
+        for (let transfer of filteredTransfers) {
+            try {
+                let timestamp;
+                
+                if(transfer.blockNumber > basedOnBlock || (transfer.blockNumber === basedOnBlock && transfer.transactionIndex > basedOnLastTransactionIndex)) {
+                    basedOnLastTransactionIndex = transfer.transactionIndex;
+                }
+    
+                if(transfer.blockNumber > basedOnBlock) {
+                    basedOnBlock = transfer.blockNumber;
+                }
+                if (blockCache.hasOwnProperty(transfer.blockNumber.toString())) {
+                    timestamp = blockCache[transfer.blockNumber.toString()]
+                } else {
+                    const block: VBlock = await getTestClient().getBlock({ blockNumber: transfer.blockNumber });
+                    timestamp = moment.unix(Number(block.timestamp)).utc().startOf('day').unix() * 1000;
+                    blockCache[transfer.blockNumber.toString()] = timestamp;
+                }
+    
+                if (!volumes.hasOwnProperty(timestamp!)) {
+                    volumes[timestamp!] = 0n;
+                }
+    
+                volumes[timestamp!] += BigInt(transfer.args.value);
+            } catch (e) {
+                console.log(e)
+            }
+        }
+    
+        if(!filteredTransfers.length) {
+            return;
+        }
+    
+        const formattedData = Object.keys(volumes).map((timestamp: any) => ({
+            timestamp: Number(timestamp),
+            basedOnBlock,
+            basedOnLastTransactionIndex,
+            value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(1000))).toString()
         }));
-
-        if (isConnected) {
-            await getDailyBusdVolumesCollection().bulkWrite(bulkOperations)
+    
+        // save to DB
+        if (formattedData.length > 0) {
+            const bulkOperations = formattedData.map((volume) => ({
+                updateOne: {
+                    filter: { timestamp: volume.timestamp },
+                    update: { $set: volume },
+                    upsert: true,
+                },
+            }));
+    
+            if (isConnected) {
+                await getDailyBusdVolumesCollection().bulkWrite(bulkOperations)
+            }
+    
         }
-
+    } catch (error) {
+        console.log(error);
+        
     }
 }
 
 
 async function computeAllUsersBalances(): Promise<void> {
-    if (!isConnected) {
-        return;
-    }
-    const allUsers = await getAllUsers();
-    const balances: Record<string, bigint> = {};
-    for (let user of allUsers) {
-        try {
-            balances[user] = await getTestClient().getBalance({ address: user as Address });
-        } catch (e) {
-            console.log(e)
+    try {
+        if (!isConnected) {
+            return;
         }
-    }
-
-    const formattedData = Object.keys(balances).map((owner: any) => ({
-        owner,
-        value: balances[owner].toString()
-    }));
-
-    // save to DB
-    if (formattedData.length > 0) {
-        const bulkOperations = formattedData.map((balance) => ({
-            updateOne: {
-                filter: { timestamp: balance.owner },
-                update: { $set: balance },
-                upsert: true,
-            },
+        const allUsers = await getAllUsers();
+        const balances: Record<string, bigint> = {};
+        for (let user of allUsers) {
+            try {
+                balances[user] = await getTestClient().getBalance({ address: user as Address });
+            } catch (e) {
+                console.log(e)
+            }
+        }
+    
+        const formattedData = Object.keys(balances).map((owner: any) => ({
+            owner,
+            value: balances[owner].toString()
         }));
-
-        if (isConnected) {
-            await getBalancesCollection().bulkWrite(bulkOperations);
+    
+        // save to DB
+        if (formattedData.length > 0) {
+            const bulkOperations = formattedData.map((balance) => ({
+                updateOne: {
+                    filter: { timestamp: balance.owner },
+                    update: { $set: balance },
+                    upsert: true,
+                },
+            }));
+    
+            if (isConnected) {
+                await getBalancesCollection().bulkWrite(bulkOperations);
+            }
         }
+    } catch (error) {
+        console.log(error);
+        
     }
 }
 
 async function triggerComputation(includeApprovalsAndAllowances = true) {
-    await computeAllUsersBalances();
-    await computeAllUsersTransfers();
-    if(includeApprovalsAndAllowances) {
-        await computeAllUsersApprovals();
-        await computeAllUsersAllowances();
+    try {
+        await computeAllUsersBalances();
+        await computeAllUsersTransfers();
+        if(includeApprovalsAndAllowances) {
+            await computeAllUsersApprovals();
+            await computeAllUsersAllowances();
+        }
+        await computeDailyBUSDVolumes();
+    } catch (error) {
+        console.log(error);
     }
-    await computeDailyBUSDVolumes();
 }
 
 export async function dataRefreshTimer() {
@@ -302,7 +316,12 @@ export function startDataRefreshTimer() {
                 return;
             }
             isRefreshingDBFromTimer = true;
-            await dataRefreshTimer();
+            try {
+                await dataRefreshTimer();
+            } catch (error) {
+                console.log(error);
+                
+            }
             isRefreshingDBFromTimer = false;
         }, getConfig().dataComputerThrottleTime)
     });
@@ -316,40 +335,45 @@ export function initializeWebSocketHandler(sendToUser: (msg: any) => void) {
 let isRefreshingDatabase = false;
 let shouldRefreshAgain = true;
 export async function handleLiveRefresh(event: any) {
-    if (!isConnected) {
-        return;
-    }
-    //console.log("____________________________________________ Handling a live event! ____________________________________________");
-    //console.log("Notifying users.");
-    notifyUsers(JSON.stringify({
-        type: "database_refreshed",
-        action: event
-    }));
-
-    if(isRefreshingDBFromTimer) {
-        return;
-    }
-
-    if(isRefreshingDatabase) {
-        //console.log("Already refreshing, skipping");
-        shouldRefreshAgain = true;
-        return;
-    }
-    isRefreshingDatabase = true;
-    //console.log("Storing...");
-    await storeActionsToDatabase([event] as Action[]);
-    //console.log("Stored.");
-    console.log("Refreshing database...");
-    await triggerComputation(event.eventName === "Approval");
-    console.log("Database refreshed.");
-    isRefreshingDatabase = false;
-    if(shouldRefreshAgain) {
-        //console.log("Will refresh again now");
-        shouldRefreshAgain = false;
+    try {
+        if (!isConnected) {
+            return;
+        }
+        //console.log("____________________________________________ Handling a live event! ____________________________________________");
+        //console.log("Notifying users.");
+        notifyUsers(JSON.stringify({
+            type: "database_refreshed",
+            action: event
+        }));
+    
+        if(isRefreshingDBFromTimer) {
+            return;
+        }
+    
+        if(isRefreshingDatabase) {
+            //console.log("Already refreshing, skipping");
+            shouldRefreshAgain = true;
+            return;
+        }
         isRefreshingDatabase = true;
-        await triggerComputation();
-        //console.log("Refreshed again");
+        //console.log("Storing...");
+        await storeActionsToDatabase([event] as Action[]);
+        //console.log("Stored.");
+        console.log("Refreshing database...");
+        await triggerComputation(event.eventName === "Approval");
+        console.log("Database refreshed.");
         isRefreshingDatabase = false;
+        if(shouldRefreshAgain) {
+            //console.log("Will refresh again now");
+            shouldRefreshAgain = false;
+            isRefreshingDatabase = true;
+            await triggerComputation();
+            //console.log("Refreshed again");
+            isRefreshingDatabase = false;
+        }
+    } catch (error) {
+        console.log(error);
+        
     }
 }
 
