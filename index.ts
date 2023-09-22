@@ -13,7 +13,18 @@ import { initializeWebSocketServer } from './utils/websocket-server';
 
 const config = getConfig();
 const app = express();
-const wssServer = new WebSocketServer({ port: config.webSocketPort });
+
+let reconnectTimer: NodeJS.Timeout | undefined;
+function connectWebSocketServer() {
+  clearTimeout(reconnectTimer);
+  const wsServer = new WebSocketServer({
+    port: config.webSocketPort,
+  });
+  wsServer.on("close", () => {
+    reconnectTimer = setTimeout(connectWebSocketServer, 3000);
+  });
+  initializeWebSocketServer(wsServer);
+}
 
 app.use(cors());
 
@@ -38,7 +49,7 @@ export const triggerDBinitialize = () => {
     fetchActionsStart();
     startDataRefreshTimer();
     subscribeToWebSocketTestClient(handleLiveRefresh);
-    initializeWebSocketServer(wssServer);
+    connectWebSocketServer();
   });
 }
 

@@ -33,7 +33,7 @@ export function subscribeToWebSocketTestClient(onData: (data: any) => void) {
         const transport = webSocket("wss://polygon-mumbai.infura.io/ws/v3/27051503de824552a932ba71cc0b5583", {
             timeout: 30000,
             retryCount: 10,
-            retryDelay: 1000
+            retryDelay: 1000,
         });
     
         const wsClient = createPublicClient({
