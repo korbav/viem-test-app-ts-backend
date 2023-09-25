@@ -1,4 +1,4 @@
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import { initializeWebSocketHandler } from '../services/data-refresher';
 
 export function initializeWebSocketServer(wsServer: WebSocketServer) {
