@@ -201,7 +201,8 @@ async function computeDailyBUSDVolumes(): Promise<void> {
     
                 volumes[timestamp!] += BigInt(transfer.args.value);
             } catch (e) {
-                console.log(e)
+                console.log("computeDailyBUSDVolumes FOR loop", e);
+                return; // Useless to continue, it would be erreneous
             }
         }
     
@@ -232,8 +233,7 @@ async function computeDailyBUSDVolumes(): Promise<void> {
     
         }
     } catch (error) {
-        console.log(error);
-        
+        console.log("computeDailyBUSDVolumes generl body", error);
     }
 }
 
@@ -273,8 +273,7 @@ async function computeAllUsersBalances(): Promise<void> {
             }
         }
     } catch (error) {
-        console.log(error);
-        
+        console.log("computeAllUsersBalances", error);
     }
 }
 
@@ -288,7 +287,7 @@ async function triggerComputation(includeApprovalsAndAllowances = true) {
         }
         await computeDailyBUSDVolumes();
     } catch (error) {
-        console.log(error);
+        console.log("triggerComputation", error);
     }
 }
 
@@ -299,7 +298,7 @@ export async function dataRefreshTimer() {
     try {
         await triggerComputation();
     } catch (e) {
-        console.log(e);
+        console.log("dataRefreshTimer", e);
     }
 }
 
@@ -319,11 +318,12 @@ export function startDataRefreshTimer() {
             try {
                 await dataRefreshTimer();
             } catch (error) {
-                console.log(error);
-                
+                console.log("startDataRefreshTimer > interval iteration", error);
             }
             isRefreshingDBFromTimer = false;
         }, getConfig().dataComputerThrottleTime)
+    }).catch((error) => {
+        console.log("startDataRefreshTimer", error);
     });
 }
 
@@ -372,8 +372,7 @@ export async function handleLiveRefresh(event: any) {
             isRefreshingDatabase = false;
         }
     } catch (error) {
-        console.log(error);
-        
+        console.log("handleLiveRefresh", error);
     }
 }
 
