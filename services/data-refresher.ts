@@ -214,7 +214,7 @@ async function computeDailyBUSDVolumes(): Promise<void> {
             timestamp: Number(timestamp),
             basedOnBlock,
             basedOnLastTransactionIndex,
-            value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(1000))).toString()
+            value: (bigIntLib.min(volumes[timestamp], bigIntLib(totalSupply.toString()).divide(100000))).toString()
         }));
     
         // save to DB
